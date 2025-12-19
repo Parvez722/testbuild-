@@ -1,0 +1,73 @@
+diff --git a/package/kernel/linux/modules/crypto.mk b/package/kernel/linux/modules/crypto.mk
+index 2e888742d0..58e478d6ef 100644
+--- a/package/kernel/linux/modules/crypto.mk
++++ b/package/kernel/linux/modules/crypto.mk
+@@ -475,6 +475,35 @@ endef
+
+ $(eval $(call KernelPackage,crypto-hw-talitos))
+
++define KernelPackage/crypto-hw-eip93
++  TITLE:=MTK EIP93 crypto module
++  DEPENDS:=@TARGET_ramips_mt7621 \
++       +kmod-crypto-authenc \
++       +kmod-crypto-des \
++       +kmod-crypto-md5 \
++       +kmod-crypto-sha1 \
++       +kmod-crypto-sha256
++  KCONFIG:= \
++       CONFIG_CRYPTO_HW=y \
++       CONFIG_CRYPTO_DEV_EIP93 \
++       CONFIG_CRYPTO_DEV_EIP93_AES=y \
++       CONFIG_CRYPTO_DEV_EIP93_DES=y \
++       CONFIG_CRYPTO_DEV_EIP93_AEAD=y \
++       CONFIG_CRYPTO_DEV_EIP93_GENERIC_SW_MAX_LEN=256 \
++       CONFIG_CRYPTO_DEV_EIP93_AES_128_SW_MAX_LEN=512
++  FILES:=$(LINUX_DIR)/drivers/crypto/mtk-eip93/crypto-hw-eip93.ko
++  AUTOLOAD:=$(call AutoLoad,09,crypto-hw-eip93)
++  $(call AddDepends/crypto)
++endef
++
++define KernelPackage/crypto-hw-eip93/description
++Kernel module to enable EIP-93 Crypto engine as found
++in the Mediatek MT7621 SoC.
++It enables DES/3DES/AES ECB/CBC/CTR and
++IPSEC offload with authenc(hmac(sha1/sha256), aes/cbc/rfc3686)
++endef
++
++$(eval $(call KernelPackage,crypto-hw-eip93))
+
+ define KernelPackage/crypto-kpp
+   TITLE:=Key-agreement Protocol Primitives
+diff --git a/target/linux/ramips/mt7621/target.mk b/target/linux/ramips/mt7621/target.mk
+index 153ff08421..2b9a1312af 100644
+--- a/target/linux/ramips/mt7621/target.mk
++++ b/target/linux/ramips/mt7621/target.mk
+@@ -10,7 +10,7 @@ KERNELNAME:=vmlinux vmlinuz
+ # make Kernel/CopyImage use $LINUX_DIR/vmlinuz
+ IMAGES_DIR:=../../..
+
+-DEFAULT_PACKAGES += wpad-basic-mbedtls uboot-envtools
++DEFAULT_PACKAGES += wpad-basic-mbedtls uboot-envtools kmod-crypto-hw-eip93
+
+ define Target/Description
+        Build firmware images for Ralink MT7621 based boards.
+diff --git a/target/linux/ramips/dts/mt7621.dtsi b/target/linux/ramips/dts/mt7621.dtsi
+index 3e076741a9..6cb0835a25 100644
+--- a/target/linux/ramips/dts/mt7621.dtsi
++++ b/target/linux/ramips/dts/mt7621.dtsi
+@@ -437,6 +437,15 @@
+ 		clock-names = "nfi_clk";
+ 	};
+ 
++        crypto: crypto@1e004000 {
++         status = "okay";
++         compatible = "mediatek,mtk-eip93";
++         reg = <0x1e004000 0x1000>;
++
++         interrupt-parent = <&gic>;
++         interrupts = <GIC_SHARED 19 IRQ_TYPE_LEVEL_HIGH>;
++        };
++
+ 	ethernet: ethernet@1e100000 {
+ 		compatible = "mediatek,mt7621-eth";
+ 		reg = <0x1e100000 0x10000>;

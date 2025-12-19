@@ -1,0 +1,28 @@
+# Default wireless configuration created by workflow
+config wifi-device 'radio0'
+    option type 'mac80211'
+    option hwmode '11a'
+    option channel '161'
+    option country 'BD'
+    option disabled '0'
+
+config wifi-iface 'default_radio0'
+    option device 'radio0'
+    option network 'lan'
+    option mode 'ap'
+    option ssid 'OpenWrt-5G'
+    option encryption 'none'
+
+config wifi-device 'radio1'
+    option type 'mac80211'
+    option hwmode '11g'
+    option channel '11'
+    option country 'BD'
+    option disabled '0'
+
+config wifi-iface 'default_radio1'
+    option device 'radio1'
+    option network 'lan'
+    option mode 'ap'
+    option ssid 'OpenWrt-2G'
+    option encryption 'none'
