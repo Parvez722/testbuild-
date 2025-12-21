@@ -1,10 +1,10 @@
-name: Ubuntu 24.04 SSH (Localtonet)
+name: Ubuntu 24.04 SSH via Localtonet
 
 on:
   workflow_dispatch:
 
 jobs:
-  ssh-server:
+  ssh:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
 
@@ -12,33 +12,39 @@ jobs:
       - name: Update system
         run: |
           sudo apt update
-          sudo apt upgrade -y
+          sudo apt install -y unzip curl openssh-server
 
-      - name: Install SSH server
+      - name: Enable SSH
         run: |
-          sudo apt install -y openssh-server curl
           sudo systemctl enable ssh
           sudo systemctl start ssh
 
-      - name: Set root password
+      - name: Set root login (temporary)
         run: |
           echo "root:root" | sudo chpasswd
           sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
           sudo sed -i 's/^PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
           sudo systemctl restart ssh
 
-      - name: Install Localtonet
+      - name: Download Localtonet
         run: |
-          curl -fsSL https://localtonet.com/install | sudo bash
+          cd /tmp
+          wget https://localtonet.com/download/localtonet-linux-x64.zip
+          unzip localtonet-linux-x64.zip
+          sudo mv localtonet /usr/local/bin/localtonet
+          sudo chmod +x /usr/local/bin/localtonet
 
-      - name: Start Localtonet SSH tunnel
+      - name: Authenticate Localtonet
         env:
           LOCALTONET_TOKEN: ${{ secrets.LOCALTONET_TOKEN }}
         run: |
-          sudo localtonet auth --token "$LOCALTONET_TOKEN"
-          sudo localtonet tcp --port 22
+          sudo /usr/local/bin/localtonet auth --token NFOeuM7AXkyz12GpoHj49Y3SfvV68Kslq
+
+      - name: Share SSH (port 22)
+        run: |
+          sudo /usr/local/bin/localtonet tcp --port 22
 
       - name: Keep runner alive
         run: |
-          echo "SSH server is running"
+          echo "SSH tunnel is active"
           sleep 6h
