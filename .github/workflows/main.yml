@@ -1,65 +1,44 @@
-name: Build X-WRT for ZTE E8820S
+name: Ubuntu 24.04 SSH (Localtonet)
 
 on:
   workflow_dispatch:
 
-env:
-  REPO_URL: https://github.com/x-wrt/x-wrt.git
-  REPO_BRANCH: master
-  TZ: Asia/Dhaka
-
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  ssh-server:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
 
     steps:
-    - name: Checkout this repository
-      uses: actions/checkout@v4
+      - name: Update system
+        run: |
+          sudo apt update
+          sudo apt upgrade -y
 
-    - name: Set timezone
-      run: |
-        sudo timedatectl set-timezone "$TZ"
+      - name: Install SSH server
+        run: |
+          sudo apt install -y openssh-server curl
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
 
-    - name: Install build dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y \
-          build-essential clang flex g++ gawk gcc-multilib gettext \
-          git libncurses5-dev libssl-dev python3 python3-distutils \
-          rsync unzip zlib1g-dev file wget ccache
+      - name: Set root password
+        run: |
+          echo "root:root" | sudo chpasswd
+          sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+          sudo sed -i 's/^PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
 
-    - name: Clone X-WRT source
-      run: |
-        git clone --depth 1 -b $REPO_BRANCH $REPO_URL openwrt
+      - name: Install Localtonet
+        run: |
+          curl -fsSL https://localtonet.com/install | sudo bash
 
-    - name: Fix script permissions
-      run: |
-        chmod +x scripts/*.sh
+      - name: Start Localtonet SSH tunnel
+        env:
+          LOCALTONET_TOKEN: ${{ secrets.LOCALTONET_TOKEN }}
+        run: |
+          sudo localtonet auth --token "$LOCALTONET_TOKEN"
+          sudo localtonet tcp --port 22
 
-    - name: Prepare source tree (DTS + patch)
-      run: |
-        cd openwrt
-        bash ../scripts/prepare.sh
-
-    - name: Update and install feeds
-      run: |
-        cd openwrt
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-
-    - name: Load build config
-      run: |
-        cd openwrt
-        cp ../config/e8820s.config .config
-        make defconfig
-
-    - name: Build firmware
-      run: |
-        cd openwrt
-        make -j$(nproc) V=s
-
-    - name: Upload firmware artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: XWRT-ZTE-E8820S
-        path: openwrt/bin/targets/**/*
+      - name: Keep runner alive
+        run: |
+          echo "SSH server is running"
+          sleep 6h
