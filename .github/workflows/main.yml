@@ -38,7 +38,7 @@ jobs:
         env:
           LOCALTONET_TOKEN: ${{ secrets.LOCALTONET_TOKEN }}
         run: |
-          sudo /usr/local/bin/localtonet auth --token NFOeuM7AXkyz12GpoHj49Y3SfvV68Kslq
+          sudo /usr/local/bin/localtonet auth --token V1KSLyw3BCWJGlF5rAeio6OXYjTRN2Eqg
 
       - name: Share SSH (port 22)
         run: |
